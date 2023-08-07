@@ -1,95 +1,74 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+import { useEffect, useState } from "react"
 
-export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
+function WagmiJWTExample() {
+  const [jwt, setJWT] = useState('')
+  const userId = window.crypto.getRandomValues(new Uint32Array(4)).join('-')
+
+  useEffect(() => {
+    fetch(`https://jwt-issuer.onrender.com/create-jwt/${userId}`).then(response => {
+      response.text().then(setJWT)
+    })
+  }, [userId])
+
+  const { chains, provider, webSocketProvider } = configureChains(
+    [polygonMumbai],
+    [infuraProvider({ apiKey: infuraApiKey })],
+  )
+  const client = createClient({
+    autoConnect: false,
+    provider,
+    webSocketProvider,
+  })
+
+  const jwtConnector = new JWTWalletConnector({
+    chains, options: {
+      projectId: defaultProjectId,
+      jwt
+    }
+  })
+
+  const ConnectButton = () => {
+
+    const [loading, setLoading] = useState(false)
+    const { connect, error, isLoading, pendingConnector } = useConnect()
+    const { address, connector, isConnected } = useAccount()
+    const { disconnect } = useDisconnect()
+    const { chain } = useNetwork()
+
+    const connectWallet = async () => {
+      setLoading(true)
+      await connect({
+        connector: jwtConnector
+      })
+      setLoading(false)
+    }
+
+
+    if (isConnected) {
+      return (
         <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+          <div>{address}</div>
+          <div>Connected to {connector.name}</div>
+          <a href={`${chain.blockExplorers.default.url}/address/${address}`} target="_blank">Explorer</a><br />
+          <button onClick={() => {
+            disconnect()
+            fetch(`https://jwt-issuer.onrender.com/create-jwt/${userId}`).then(response => {
+              response.text().then(setJWT)
+            })
+          }}>Disconnect</button>
         </div>
-      </div>
+      )
+    }
+    return (
+      <button disabled={isLoading || loading || !jwt} onClick={connectWallet}>
+        {isLoading || loading ? 'loading...' : 'Connect with JWT'}
+      </button>
+    )
+  }
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+  return (
+    <WagmiConfig client={client}>
+      <ConnectButton />
+    </WagmiConfig>
   )
 }
